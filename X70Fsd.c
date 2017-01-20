@@ -20,13 +20,13 @@
 
 #pragma prefast(disable:__WARNING_ENCODE_MEMBER_FUNCTION_POINTER, "Not valid for kernel mode drivers")
 
-#define X70FSD_PORT_NAME	L"\\PortXiao70"
+#define X70FSD_PORT_NAME    L"\\PortXiao70"
 
 PFLT_FILTER gFilterHandle = NULL;
 extern COMMAND gCommand;
 
-PFLT_PORT 	gServerPort = NULL;
-PFLT_PORT 	gClientPort = NULL;
+PFLT_PORT   gServerPort = NULL;
+PFLT_PORT   gClientPort = NULL;
 
 ULONG_PTR OperationStatusCtx = 1;
 
@@ -37,9 +37,9 @@ ULONG_PTR OperationStatusCtx = 1;
 ULONG gTraceFlags = 0;
 
 #define PT_DBG_PRINT( _dbgLevel, _string )          \
-	(FlagOn(gTraceFlags,(_dbgLevel)) ?              \
-	DbgPrint _string :                              \
-	((int)0))
+    (FlagOn(gTraceFlags,(_dbgLevel)) ?              \
+    DbgPrint _string :                              \
+    ((int)0))
 
 /*************************************************************************
 Prototypes
@@ -539,7 +539,6 @@ PtInstanceSetup(
     UNREFERENCED_PARAMETER(VolumeFilesystemType);
 
     try {
-
         // 我们在卷上下文中保存扇区大小跟一个资源，用卷上下文完成vcb的工作.
         status = FltAllocateContext(FltObjects->Filter,
             FLT_VOLUME_CONTEXT,
@@ -574,7 +573,6 @@ PtInstanceSetup(
 
         VolumeBuffer = FltAllocatePoolAlignedWithTag(FltObjects->Instance, NonPagedPool,
                                                      sizeof(FILE_FS_SIZE_INFORMATION), 'clu');
-
         if (VolumeBuffer == NULL) {
             status = STATUS_INSUFFICIENT_RESOURCES;
             leave;
@@ -592,7 +590,8 @@ PtInstanceSetup(
             ctx->SectorsPerAllocationUnit = VolumeBuffer->SectorsPerAllocationUnit;
         }
         else {
-            ctx->SectorsPerAllocationUnit = 1;  // 网络设备会返回失败。
+            // 网络设备会返回失败
+            ctx->SectorsPerAllocationUnit = 1;
         }
 
         FltIsVolumeWritable(FltObjects->Volume, &ctx->IsWritable);
@@ -605,7 +604,6 @@ PtInstanceSetup(
         if (status == STATUS_FLT_CONTEXT_ALREADY_DEFINED) {
             status = STATUS_SUCCESS;
         }
-
     }
     finally {
         if (ctx != NULL) {

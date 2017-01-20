@@ -23,18 +23,18 @@ extern DYNAMIC_FUNCTION_POINTERS gDynamicFunctions;
 
 //#define MAX_NTFS_METADATA_FILE 11
 //WCHAR *NtfsMetadataFileNames[] = {
-//	L"$Mft",
-//	L"$MftMirr",
-//	L"$LogFile",
-//	L"$Volume",
-//	L"$AttrDef",
-//	L"$Root",
-//	L"$Bitmap",
-//	L"$Boot",
-//	L"$BadClus",
-//	L"$Secure",
-//	L"$UpCase",
-//	L"$Extend"
+//  L"$Mft",
+//  L"$MftMirr",
+//  L"$LogFile",
+//  L"$Volume",
+//  L"$AttrDef",
+//  L"$Root",
+//  L"$Bitmap",
+//  L"$Boot",
+//  L"$BadClus",
+//  L"$Secure",
+//  L"$UpCase",
+//  L"$Extend"
 //}; //NTFS元数据不能加密
 
 BOOLEAN IsConcernedProcess(PCFLT_RELATED_OBJECTS FltObjects, PNTSTATUS pStatus, PULONG ProcType)
@@ -102,13 +102,13 @@ NTSTATUS CreateFileImitation(__inout PFLT_CALLBACK_DATA Data,
     PFLT_IO_PARAMETER_BLOCK CONST Iopb = Data->Iopb;
     LARGE_INTEGER  AllocationSize;
     ACCESS_MASK DesiredAccess;
-    ULONG	EaLength;
-    PVOID	EaBuffer;
-    ULONG	Options;
-    ULONG	CreateDisposition;
-    ULONG	FileAttributes;
-    ULONG	ShareAccess;
-    ULONG	Flags = 0;
+    ULONG   EaLength;
+    PVOID   EaBuffer;
+    ULONG   Options;
+    ULONG   CreateDisposition;
+    ULONG   FileAttributes;
+    ULONG   ShareAccess;
+    ULONG   Flags = 0;
     PSECURITY_DESCRIPTOR SecurityDescriptor = NULL;
 
     UNREFERENCED_PARAMETER(FltObjects);
@@ -187,7 +187,7 @@ NTSTATUS CreateFileByNonExistFcb(__inout PFLT_CALLBACK_DATA Data,
     __in PCFLT_RELATED_OBJECTS FltObjects,
     __in PFCB Fcb,
     __in PIRP_CONTEXT IrpContext,
-    __in PUCHAR	HashValue
+    __in PUCHAR HashValue
     )
 {
     NTSTATUS Status = STATUS_SUCCESS;
@@ -211,7 +211,7 @@ NTSTATUS CreateFileByNonExistFcb(__inout PFLT_CALLBACK_DATA Data,
     PFLT_CALLBACK_DATA OrgData = NULL;
 
     ACCESS_MASK DesiredAccess;
-    ULONG	ShareAccess;
+    ULONG   ShareAccess;
     LARGE_INTEGER AllocationSize;
     LARGE_INTEGER FileBeginOffset;
 
@@ -296,7 +296,7 @@ NTSTATUS CreateFileByNonExistFcb(__inout PFLT_CALLBACK_DATA Data,
 
         Status = CreateFcbAndCcb(Data, FltObjects, IrpContext, HashValue);
         if (NT_SUCCESS(Status)) {
-            PCCB  Ccb;
+            PCCB Ccb;
             Fcb = IrpContext->CreateInfo.Fcb;
             Ccb = IrpContext->CreateInfo.Ccb;
 
@@ -385,7 +385,6 @@ try_exit:
             ExFreeToNPagedLookasideList(&G_CcbLookasideList, Ccb);
             FileObject->FsContext2 = NULL;
         }
-
     }
 
     return Status;
@@ -410,8 +409,8 @@ NTSTATUS CreateFileByExistFcb(__inout PFLT_CALLBACK_DATA Data,
     PVOID  EaBuffer;
     ULONG  Options;
     ULONG  CreateDisposition;
-    ULONG	FileAttributes;
-    ULONG	ShareAccess;
+    ULONG   FileAttributes;
+    ULONG   ShareAccess;
 
     BOOLEAN NoEaKnowledge;
     BOOLEAN DeleteOnClose;
@@ -747,10 +746,11 @@ NTSTATUS CreateFileByExistFcb(__inout PFLT_CALLBACK_DATA Data,
             FileObject->Flags |= FO_CACHE_SUPPORTED;
         }
 
-    try_exit: NOTHING;
+try_exit:
+        NOTHING;
+
         if (IrpContext->FltStatus == FLT_PREOP_COMPLETE) {
             if (NT_SUCCESS(Status) && Status != STATUS_PENDING) {
-
                 if (FlagOn(Ccb->CcbState, CCB_FLAG_NETWORK_FILE)) {
                     NetFileSetCacheProperty(FileObject, DesiredAccess);
                 }
@@ -825,10 +825,8 @@ NTSTATUS CreateFileByExistFcb(__inout PFLT_CALLBACK_DATA Data,
     return Status;
 }
 
-
 BOOLEAN IsNeedSelfFcb(__inout PFLT_CALLBACK_DATA Data, PFLT_FILE_NAME_INFORMATION * nameInfo, PNTSTATUS pStatus)
 {
-
     NTSTATUS Status;
     BOOLEAN IsDirectory = FALSE;
 
@@ -836,8 +834,8 @@ BOOLEAN IsNeedSelfFcb(__inout PFLT_CALLBACK_DATA Data, PFLT_FILE_NAME_INFORMATIO
         *pStatus = STATUS_SUCCESS;
         return FALSE;
     }
-    Status = FltIsDirectory(Data->Iopb->TargetFileObject, Data->Iopb->TargetInstance, &IsDirectory);
 
+    Status = FltIsDirectory(Data->Iopb->TargetFileObject, Data->Iopb->TargetInstance, &IsDirectory);
     if (NT_SUCCESS(Status) && IsDirectory) {
         *pStatus = STATUS_SUCCESS;
         return FALSE;
@@ -860,7 +858,6 @@ BOOLEAN IsNeedSelfFcb(__inout PFLT_CALLBACK_DATA Data, PFLT_FILE_NAME_INFORMATIO
     }
 
     Status = FltParseFileNameInformation(*nameInfo);
-
     if (!NT_SUCCESS(Status)) {
         *pStatus = Status;
         return FALSE;
@@ -950,7 +947,6 @@ PtPostOperationCreate(
     __in_opt PVOID CompletionContext,
     __in FLT_POST_OPERATION_FLAGS Flags
     )
-
 {
     UNREFERENCED_PARAMETER(Data);
     UNREFERENCED_PARAMETER(FltObjects);
@@ -968,7 +964,7 @@ PtPreOperationCreate(
     )
 {
     NTSTATUS Status = STATUS_SUCCESS;
-    FLT_PREOP_CALLBACK_STATUS	FltStatus = FLT_PREOP_COMPLETE;
+    FLT_PREOP_CALLBACK_STATUS   FltStatus = FLT_PREOP_COMPLETE;
     BOOLEAN TopLevel;
     PIRP_CONTEXT IrpContext = NULL;
     PFILE_OBJECT FileObject = FltObjects->FileObject;
@@ -1025,7 +1021,7 @@ PtPreOperationCreate(
         try {
             IrpContext = X70FsdCreateIrpContext(Data, FltObjects, CanFsdWait(Data));
             IrpContext->CreateInfo.ProcType = ProcType;
-            FltStatus = X70FsdCommonCreate(Data, FltObjects, IrpContext); //
+            FltStatus = X70FsdCommonCreate(Data, FltObjects, IrpContext);
         }
         __except (EXCEPTION_EXECUTE_HANDLER) {
             DbgPrint("create exception! \n");
@@ -1153,6 +1149,7 @@ X70FsdCommonCreate(
         if (FileName->Length > sizeof(WCHAR) &&
             FileName->Buffer[1] == L'\\' &&
             FileName->Buffer[0] == L'\\') {
+
             FileName->Length -= sizeof(WCHAR);
 
             RtlMoveMemory(
@@ -1174,7 +1171,7 @@ X70FsdCommonCreate(
 
         if (volCtx->DeviceType == FILE_DEVICE_NETWORK_FILE_SYSTEM) {
             // only read !!!!!
-            IrpContext->CreateInfo.Network = TRUE;	
+            IrpContext->CreateInfo.Network = TRUE;  
         }
 
         IrpContext->SectorSize = volCtx->SectorSize;
@@ -1195,7 +1192,6 @@ X70FsdCommonCreate(
             }
 
             try_return(FltStatus = IrpContext->FltStatus);
-
         }
         else {
             Status = CreateFileByNonExistFcb(Data, FltObjects, Fcb, IrpContext, HashValue);
@@ -1207,7 +1203,8 @@ X70FsdCommonCreate(
             try_return(FltStatus = IrpContext->FltStatus);
         }
 
-    try_exit:NOTHING;
+try_exit:
+        NOTHING;
 
         if (IrpContext->CreateInfo.ReissueIo) {
             FltStatus = FLT_PREOP_SUCCESS_NO_CALLBACK;
@@ -1216,9 +1213,7 @@ X70FsdCommonCreate(
             Data->IoStatus.Information = IrpContext->CreateInfo.Information;
         }
     }
-    finally
-    {
-
+    finally {
         if (IrpContext->CreateInfo.nameInfo != NULL) {
             FltReleaseFileNameInformation(IrpContext->CreateInfo.nameInfo);
         }
@@ -1235,13 +1230,13 @@ X70FsdCommonCreate(
         if (volCtx != NULL) {
             FltReleaseContext(volCtx);
         }
-        //完成上下文
 
+        // 完成上下文
         Data->IoStatus.Status = Status;
 
         if (!NT_SUCCESS(Status) || FltStatus != FLT_PREOP_COMPLETE) {
             if (!NT_SUCCESS(Status) && FltStatus == FLT_PREOP_COMPLETE) {
-                // TODO: xxxxx
+                // TODO: nothing??
             }
             // 销毁对象跟句柄
             if (IrpContext->CreateInfo.StreamObject != NULL) {

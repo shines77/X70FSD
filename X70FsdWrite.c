@@ -306,33 +306,33 @@ X70FsdCommonWrite(
     Header = &Fcb->Header;
 
     if (NonCachedIo) {
-        if (IrpContext->X70FsdIoContext == NULL) {
+        if (IrpContext->IoContext == NULL) {
             if (!Wait) {
-                IrpContext->X70FsdIoContext = (PLAYERFSD_IO_CONTEXT)ExAllocateFromNPagedLookasideList(&G_IoContextLookasideList);
+                IrpContext->IoContext = (PLAYERFSD_IO_CONTEXT)ExAllocateFromNPagedLookasideList(&G_IoContextLookasideList);
             }
             else {
-                IrpContext->X70FsdIoContext = &StackX70FsdIoContext;
+                IrpContext->IoContext = &StackX70FsdIoContext;
                 SetFlag(IrpContext->Flags, IRP_CONTEXT_STACK_IO_CONTEXT);
             }
         }
 
-        RtlZeroMemory(IrpContext->X70FsdIoContext, sizeof(LAYERFSD_IO_CONTEXT));
+        RtlZeroMemory(IrpContext->IoContext, sizeof(LAYERFSD_IO_CONTEXT));
 
         if (Wait) {
-            KeInitializeEvent(&IrpContext->X70FsdIoContext->Wait.SyncEvent,
+            KeInitializeEvent(&IrpContext->IoContext->Wait.SyncEvent,
                 NotificationEvent,
                 FALSE);
 
-            IrpContext->X70FsdIoContext->PagingIo = PagingIo;
+            IrpContext->IoContext->PagingIo = PagingIo;
 
         }
         else {
-            IrpContext->X70FsdIoContext->PagingIo = PagingIo;
-            IrpContext->X70FsdIoContext->Wait.Async.ResourceThreadId =
+            IrpContext->IoContext->PagingIo = PagingIo;
+            IrpContext->IoContext->Wait.Async.ResourceThreadId =
                 ExGetCurrentResourceThread();
-            IrpContext->X70FsdIoContext->Wait.Async.RequestedByteCount =
+            IrpContext->IoContext->Wait.Async.RequestedByteCount =
                 ByteCount;
-            IrpContext->X70FsdIoContext->Wait.Async.FileObject = FileObject;
+            IrpContext->IoContext->Wait.Async.FileObject = FileObject;
         }
     }
 
@@ -384,7 +384,7 @@ X70FsdCommonWrite(
             PagingIoResourceAcquired = TRUE;
 
             if (!Wait) {
-                IrpContext->X70FsdIoContext->Wait.Async.Resource = Header->PagingIoResource;
+                IrpContext->IoContext->Wait.Async.Resource = Header->PagingIoResource;
             }
             if (Fcb->MoveFileEvent) {
                 (VOID)KeWaitForSingleObject(Fcb->MoveFileEvent,
@@ -401,10 +401,10 @@ X70FsdCommonWrite(
                     try_return(PostIrp = TRUE);
                 }
 
-                IrpContext->X70FsdIoContext->Wait.Async.Resource = Fcb->Header.Resource;
+                IrpContext->IoContext->Wait.Async.Resource = Fcb->Header.Resource;
 
                 if (FcbCanDemoteToShared) {
-                    IrpContext->X70FsdIoContext->Wait.Async.Resource2 = Fcb->Header.PagingIoResource;
+                    IrpContext->IoContext->Wait.Async.Resource2 = Fcb->Header.PagingIoResource;
                 }
             }
             else {
@@ -510,9 +510,9 @@ X70FsdCommonWrite(
                 if ((Fcb->SectionObjectPointers.DataSectionObject != NULL) ||
                     (StartingByte.QuadPart + ByteCount > Fcb->Header.ValidDataLength.QuadPart)) {
 
-                    RtlZeroMemory(IrpContext->X70FsdIoContext, sizeof(LAYERFSD_IO_CONTEXT));
+                    RtlZeroMemory(IrpContext->IoContext, sizeof(LAYERFSD_IO_CONTEXT));
 
-                    KeInitializeEvent(&IrpContext->X70FsdIoContext->Wait.SyncEvent,
+                    KeInitializeEvent(&IrpContext->IoContext->Wait.SyncEvent,
                         NotificationEvent,
                         FALSE);
 
@@ -539,8 +539,8 @@ X70FsdCommonWrite(
 
                     UnwindOutstandingAsync = TRUE;
 
-                    IrpContext->X70FsdIoContext->Wait.Async.OutstandingAsyncEvent = Fcb->OutstandingAsyncEvent;
-                    IrpContext->X70FsdIoContext->Wait.Async.OutstandingAsyncWrites = &Fcb->OutstandingAsyncWrites;
+                    IrpContext->IoContext->Wait.Async.OutstandingAsyncEvent = Fcb->OutstandingAsyncEvent;
+                    IrpContext->IoContext->Wait.Async.OutstandingAsyncWrites = &Fcb->OutstandingAsyncWrites;
                 }
             }
 
@@ -563,7 +563,7 @@ X70FsdCommonWrite(
         }
 
         if (NonCachedIo && !Wait) {
-            IrpContext->X70FsdIoContext->Wait.Async.RequestedByteCount =
+            IrpContext->IoContext->Wait.Async.RequestedByteCount =
                 ByteCount;
         }
 
@@ -742,12 +742,12 @@ X70FsdCommonWrite(
 
             ExAcquireResourceSharedLite(Ccb->StreamFileInfo.FO_Resource, TRUE);
             FOResourceAcquired = TRUE;
-            IrpContext->X70FsdIoContext->Wait.Async.FO_Resource = Ccb->StreamFileInfo.FO_Resource;
+            IrpContext->IoContext->Wait.Async.FO_Resource = Ccb->StreamFileInfo.FO_Resource;
 
 
             ExAcquireResourceSharedLite(Fcb->EncryptResource, TRUE);
             EncryptResourceAcquired = TRUE;
-            IrpContext->X70FsdIoContext->Wait.Async.Resource2 = Fcb->EncryptResource;
+            IrpContext->IoContext->Wait.Async.Resource2 = Fcb->EncryptResource;
 
             NewByteOffset.QuadPart = StartingByte.QuadPart + Fcb->FileHeaderLength;
 
@@ -760,17 +760,17 @@ X70FsdCommonWrite(
             }
 
             IrpContext->FileObject = BooleanFlagOn(Ccb->CcbState, CCB_FLAG_NETWORK_FILE) ? Ccb->StreamFileInfo.StreamObject : Fcb->CcFileObject;
-            IrpContext->X70FsdIoContext->Data = Data;
-            IrpContext->X70FsdIoContext->SystemBuffer = SystemBuffer;
-            IrpContext->X70FsdIoContext->SwapBuffer = newBuf;
-            IrpContext->X70FsdIoContext->SwapMdl = newMdl;
-            IrpContext->X70FsdIoContext->volCtx = volCtx;
-            IrpContext->X70FsdIoContext->Wait.Async.RequestedByteCount = ByteCount;
-            IrpContext->X70FsdIoContext->Wait.Async.pFileObjectMutex = NULL;
+            IrpContext->IoContext->Data = Data;
+            IrpContext->IoContext->SystemBuffer = SystemBuffer;
+            IrpContext->IoContext->SwapBuffer = newBuf;
+            IrpContext->IoContext->SwapMdl = newMdl;
+            IrpContext->IoContext->volCtx = volCtx;
+            IrpContext->IoContext->Wait.Async.RequestedByteCount = ByteCount;
+            IrpContext->IoContext->Wait.Async.pFileObjectMutex = NULL;
             //&Ccb->StreamFileInfo.FileObjectMutex;
-            IrpContext->X70FsdIoContext->ByteOffset.QuadPart = StartingByte.QuadPart;
-            IrpContext->X70FsdIoContext->FltObjects = FltObjects;
-            IrpContext->X70FsdIoContext->Instance = FltObjects->Instance;
+            IrpContext->IoContext->ByteOffset.QuadPart = StartingByte.QuadPart;
+            IrpContext->IoContext->FltObjects = FltObjects;
+            IrpContext->IoContext->Instance = FltObjects->Instance;
 
             Status = RealWriteFile(FltObjects, IrpContext, newBuf, NewByteOffset, WriteLen, &RetBytes);
 
@@ -785,7 +785,7 @@ X70FsdCommonWrite(
                 SetFlag(IrpContext->Flags, IRP_CONTEXT_FLAG_WAIT);
 
                 NonCachedIoPending = TRUE;
-                IrpContext->X70FsdIoContext = NULL;
+                IrpContext->IoContext = NULL;
                 volCtx = NULL;
                 newBuf = NULL;
             }
@@ -1326,7 +1326,7 @@ NTSTATUS RealWriteFile(
         RetNewCallbackData->Iopb->Parameters.Write.Length = ByteCount;
         RetNewCallbackData->Iopb->Parameters.Write.WriteBuffer = SystemBuffer;
 
-        //RetNewCallbackData->Iopb->Parameters.Write.MdlAddress = IrpContext->X70FsdIoContext->SwapMdl;
+        //RetNewCallbackData->Iopb->Parameters.Write.MdlAddress = IrpContext->IoContext->SwapMdl;
 
         RetNewCallbackData->Iopb->TargetFileObject = FileObject;
         /* SetFlag(RetNewCallbackData->Iopb->IrpFlags, IRP_WRITE_OPERATION);*/
@@ -1340,7 +1340,7 @@ NTSTATUS RealWriteFile(
             *RetBytes = RetNewCallbackData->IoStatus.Information;
         }
         else {
-            Status = FltPerformAsynchronousIo(RetNewCallbackData, WriteFileAsyncCompletionRoutine, IrpContext->X70FsdIoContext);
+            Status = FltPerformAsynchronousIo(RetNewCallbackData, WriteFileAsyncCompletionRoutine, IrpContext->IoContext);
         }
 
 #ifdef CHANGE_TOP_IRP

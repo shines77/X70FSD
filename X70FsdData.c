@@ -1603,7 +1603,7 @@ X70FsdSetTopLevelIrp(
     if (((ULONG_PTR)CurrentTopLevelContext <= StackBottom - sizeof(TOP_LEVEL_CONTEXT)) &&
         ((ULONG_PTR)CurrentTopLevelContext >= StackTop) &&
         !FlagOn((ULONG_PTR)CurrentTopLevelContext, 0x3) &&
-        (CurrentTopLevelContext->X70Fsd == 0x70)) {
+        (CurrentTopLevelContext->cSign == 0x70)) {
         ValidCurrentTopLevel = TRUE;
     }
 
@@ -1630,7 +1630,7 @@ X70FsdSetTopLevelIrp(
     // 如果我们在顶层的NTFS然后初始化调用者的结构并将其存储在线程本地存储
 
     if (TopLevelX70Fsd) {
-        TopLevelContext->X70Fsd = 0x70;                                     // 我们的标志
+        TopLevelContext->cSign = 0x70;                                      // 我们的标志
         TopLevelContext->SavedTopLevelIrp = (PIRP)CurrentTopLevelContext;   // 保存顶层的上下文
         TopLevelContext->TopLevelIrpContext = NULL;
         TopLevelContext->TopLevelRequest = TopLevelRequest;
@@ -1710,10 +1710,10 @@ X70FsdDeleteIrpContext(
     if (!FlagOn(IrpContext->Flags, IRP_CONTEXT_FLAG_DONT_DELETE)) {
         // 非缓存的异步操作在操作内部自己清理了
         if (!FlagOn(IrpContext->Flags, IRP_CONTEXT_STACK_IO_CONTEXT)
-            && (IrpContext->X70FsdIoContext != NULL)) {
+            && (IrpContext->IoContext != NULL)) {
 
-            ExFreeToNPagedLookasideList(&G_IoContextLookasideList, IrpContext->X70FsdIoContext);
-            IrpContext->X70FsdIoContext = NULL;
+            ExFreeToNPagedLookasideList(&G_IoContextLookasideList, IrpContext->IoContext);
+            IrpContext->IoContext = NULL;
         }
 
         // 释放内存
@@ -1772,11 +1772,11 @@ X70FsdPrePostIrp(
         return;
     }
 
-    if ((IrpContext->X70FsdIoContext != NULL) &&
+    if ((IrpContext->IoContext != NULL) &&
         FlagOn(IrpContext->Flags, IRP_CONTEXT_STACK_IO_CONTEXT)) {
 
         ClearFlag(IrpContext->Flags, IRP_CONTEXT_STACK_IO_CONTEXT);
-        IrpContext->X70FsdIoContext = NULL;
+        IrpContext->IoContext = NULL;
     }
 
     if (ARGUMENT_PRESENT(Data)) {

@@ -226,10 +226,10 @@ X70FsdCommonRead(
     PFCB Fcb = NULL;
     PCCB Ccb = NULL;
 
-    BOOLEAN Wait = FALSE;
-    BOOLEAN PagingIo = FALSE;
-    BOOLEAN NonCachedIo = FALSE;
-    BOOLEAN SynchronousIo = FALSE;
+    BOOLEAN needWait = FALSE;
+    BOOLEAN isPagingIO = FALSE;
+    BOOLEAN isNonCachedIO = FALSE;
+    BOOLEAN isSynchronousIO = FALSE;
     BOOLEAN DoingIoAtEof = FALSE;
 
     BOOLEAN PagingIoAcquired = FALSE;
@@ -272,10 +272,10 @@ X70FsdCommonRead(
     Fcb = FileObject->FsContext;
     Ccb = FileObject->FsContext2;
 
-    Wait = BooleanFlagOn(IrpContext->Flags, IRP_CONTEXT_FLAG_WAIT);
-    PagingIo = BooleanFlagOn(Iopb->IrpFlags, IRP_PAGING_IO);
-    NonCachedIo = BooleanFlagOn(Iopb->IrpFlags, IRP_NOCACHE);
-    SynchronousIo = BooleanFlagOn(FileObject->Flags, FO_SYNCHRONOUS_IO);
+    needWait = BooleanFlagOn(IrpContext->Flags, IRP_CONTEXT_FLAG_WAIT);
+    isPagingIO = BooleanFlagOn(Iopb->IrpFlags, IRP_PAGING_IO);
+    isNonCachedIO = BooleanFlagOn(Iopb->IrpFlags, IRP_NOCACHE);
+    isSynchronousIO = BooleanFlagOn(FileObject->Flags, FO_SYNCHRONOUS_IO);
 
     if (FlagOn(Ccb->CcbState, CCB_FLAG_NETWORK_FILE)) {
         SetFlag(IrpContext->Flags, IRP_CONTEXT_NETWORK_FILE);
@@ -296,32 +296,30 @@ X70FsdCommonRead(
         return FLT_PREOP_COMPLETE;
     }
 
-    if (NonCachedIo) {
-        if (IrpContext->X70FsdIoContext == NULL) {
-            if (!Wait) {
-                IrpContext->X70FsdIoContext = (PLAYERFSD_IO_CONTEXT)ExAllocateFromNPagedLookasideList(&G_IoContextLookasideList);
+    if (isNonCachedIO) {
+        if (IrpContext->IoContext == NULL) {
+            if (!needWait) {
+                IrpContext->IoContext = (PLAYERFSD_IO_CONTEXT)ExAllocateFromNPagedLookasideList(&G_IoContextLookasideList);
                 ClearFlag(IrpContext->Flags, IRP_CONTEXT_STACK_IO_CONTEXT);
             }
             else {
-                IrpContext->X70FsdIoContext = &StackX70FsdIoContext;
+                IrpContext->IoContext = &StackX70FsdIoContext;
                 SetFlag(IrpContext->Flags, IRP_CONTEXT_STACK_IO_CONTEXT);
             }
         }
-        RtlZeroMemory(IrpContext->X70FsdIoContext, sizeof(LAYERFSD_IO_CONTEXT));
+        RtlZeroMemory(IrpContext->IoContext, sizeof(LAYERFSD_IO_CONTEXT));
 
-        if (Wait) {
-            KeInitializeEvent(&IrpContext->X70FsdIoContext->Wait.SyncEvent,
+        if (needWait) {
+            KeInitializeEvent(&IrpContext->IoContext->Wait.SyncEvent,
                 NotificationEvent,
                 FALSE);
-            IrpContext->X70FsdIoContext->PagingIo = PagingIo;
+            IrpContext->IoContext->PagingIo = isPagingIO;
         }
         else {
-            IrpContext->X70FsdIoContext->PagingIo = PagingIo;
-            IrpContext->X70FsdIoContext->Wait.Async.ResourceThreadId =
-                ExGetCurrentResourceThread();
-            IrpContext->X70FsdIoContext->Wait.Async.RequestedByteCount =
-                ByteCount;
-            IrpContext->X70FsdIoContext->Wait.Async.FileObject = FileObject;
+            IrpContext->IoContext->PagingIo = isPagingIO;
+            IrpContext->IoContext->Wait.Async.ResourceThreadId = ExGetCurrentResourceThread();
+            IrpContext->IoContext->Wait.Async.RequestedByteCount = ByteCount;
+            IrpContext->IoContext->Wait.Async.FileObject = FileObject;
         }
     }
 
@@ -329,8 +327,8 @@ X70FsdCommonRead(
         // 文件有一个缓存, 并且是非缓存的I0, 并且不是分页 io 这个时候刷新缓存, 分页 io 是 vmm 缺页调用的, 这个时候不能刷新缓存数据.
 
         // 如果是非缓存或者是网络文件的写要刷下缓存
-        if ((NonCachedIo || FlagOn(Ccb->CcbState, CCB_FLAG_NETWORK_FILE)) &&
-            !PagingIo &&
+        if ((isNonCachedIO || FlagOn(Ccb->CcbState, CCB_FLAG_NETWORK_FILE)) &&
+            !isPagingIO &&
             (FileObject->SectionObjectPointer->DataSectionObject != NULL)) {
 
             if (!X70FsdAcquireExclusiveFcb(IrpContext, Fcb)) {
@@ -356,13 +354,13 @@ X70FsdCommonRead(
             ExReleaseResource(Fcb->Header.PagingIoResource);
         }
 
-        if (!PagingIo) {
-            if (!Wait && NonCachedIo) {
+        if (!isPagingIO) {
+            if (!needWait && isNonCachedIO) {
                 if (!X70FsdAcquireSharedFcbWaitForEx(IrpContext, Fcb)) {
                     try_return(PostIrp = TRUE);
                 }
 
-                IrpContext->X70FsdIoContext->Wait.Async.Resource = Fcb->Header.Resource;
+                IrpContext->IoContext->Wait.Async.Resource = Fcb->Header.Resource;
             }
             else {
                 // BugFixed: 原始版本的此行（第 448 行）后面貌似少了一个 "{" !
@@ -373,19 +371,19 @@ X70FsdCommonRead(
         }
         else {
             if (Fcb->Header.PagingIoResource != NULL) {
-                if (!ExAcquireResourceSharedLite(Fcb->Header.PagingIoResource, Wait)) {
+                if (!ExAcquireResourceSharedLite(Fcb->Header.PagingIoResource, needWait)) {
                     try_return(PostIrp = TRUE);
                 }
 
-                if (!Wait) {
+                if (!needWait) {
                     // 保存资源
-                    IrpContext->X70FsdIoContext->Wait.Async.Resource = Fcb->Header.PagingIoResource;
+                    IrpContext->IoContext->Wait.Async.Resource = Fcb->Header.PagingIoResource;
                 }
             }
         }
         ScbAcquired = TRUE;
 
-        if (!PagingIo) {
+        if (!isPagingIO) {
             FLT_PREOP_CALLBACK_STATUS FltOplockStatus;
 
             FltOplockStatus = FltCheckOplock(&Fcb->Oplock,
@@ -424,14 +422,14 @@ X70FsdCommonRead(
         }
 
         if (IS_FLT_FILE_LOCK()) {
-            if (!PagingIo &&
+            if (!isPagingIO &&
                 (Fcb->FileLock != NULL) &&
                 !FltCheckLockForReadAccess(Fcb->FileLock, Data)) {
                 try_return(Status = STATUS_FILE_LOCK_CONFLICT);
             }
         }
         else {
-            if (!PagingIo &&
+            if (!isPagingIO &&
                 (Fcb->FileLock != NULL) &&
                 !MyFltCheckLockForReadAccess(Fcb->FileLock, Data)) {
                 try_return(Status = STATUS_FILE_LOCK_CONFLICT);
@@ -455,12 +453,12 @@ X70FsdCommonRead(
             ByteRange.QuadPart = StartingByte.QuadPart + (LONGLONG)ByteCount;
             RequestedByteCount = (ULONG)ByteCount;
 
-            if (NonCachedIo && !Wait) {
-                IrpContext->X70FsdIoContext->Wait.Async.RequestedByteCount = (ULONG)RequestedByteCount;
+            if (isNonCachedIO && !needWait) {
+                IrpContext->IoContext->Wait.Async.RequestedByteCount = (ULONG)RequestedByteCount;
             }
         }
 
-        if (NonCachedIo) {
+        if (isNonCachedIO) {
             LARGE_INTEGER NewByteOffset;
             ULONG readLen = ByteCount;
             PUCHAR newBuf = NULL;
@@ -501,32 +499,32 @@ X70FsdCommonRead(
 
             ExAcquireResourceSharedLite(Ccb->StreamFileInfo.FO_Resource, TRUE);
             FOResourceAcquired = TRUE;
-            IrpContext->X70FsdIoContext->Wait.Async.FO_Resource = Ccb->StreamFileInfo.FO_Resource;
+            IrpContext->IoContext->Wait.Async.FO_Resource = Ccb->StreamFileInfo.FO_Resource;
 
             ExAcquireResourceSharedLite(Fcb->EncryptResource, TRUE);
             EncryptResourceAcquired = TRUE;
-            IrpContext->X70FsdIoContext->Wait.Async.Resource2 = Fcb->EncryptResource;
+            IrpContext->IoContext->Wait.Async.Resource2 = Fcb->EncryptResource;
 
             NewByteOffset.QuadPart = StartingByte.QuadPart + Fcb->FileHeaderLength;
 
             IrpContext->FileObject = BooleanFlagOn(Ccb->CcbState, CCB_FLAG_NETWORK_FILE) ? Ccb->StreamFileInfo.StreamObject : Fcb->CcFileObject;
-            IrpContext->X70FsdIoContext->Data = Data;
-            IrpContext->X70FsdIoContext->SystemBuffer = SystemBuffer;
-            IrpContext->X70FsdIoContext->SwapBuffer = newBuf;
-            IrpContext->X70FsdIoContext->SwapMdl = newMdl;
-            IrpContext->X70FsdIoContext->volCtx = volCtx;
-            IrpContext->X70FsdIoContext->Wait.Async.ByteCount = ByteCount;
-            IrpContext->X70FsdIoContext->Wait.Async.pFileObjectMutex = NULL;
-            IrpContext->X70FsdIoContext->FltObjects = FltObjects;
-            IrpContext->X70FsdIoContext->Instance = FltObjects->Instance;
-            IrpContext->X70FsdIoContext->FileHeaderLength = Fcb->FileHeaderLength;
-            IrpContext->X70FsdIoContext->IsEnFile = Fcb->IsEnFile;
-            IrpContext->X70FsdIoContext->pCryptionKey = &Fcb->CryptionKey;
+            IrpContext->IoContext->Data = Data;
+            IrpContext->IoContext->SystemBuffer = SystemBuffer;
+            IrpContext->IoContext->SwapBuffer = newBuf;
+            IrpContext->IoContext->SwapMdl = newMdl;
+            IrpContext->IoContext->volCtx = volCtx;
+            IrpContext->IoContext->Wait.Async.ByteCount = ByteCount;
+            IrpContext->IoContext->Wait.Async.pFileObjectMutex = NULL;
+            IrpContext->IoContext->FltObjects = FltObjects;
+            IrpContext->IoContext->Instance = FltObjects->Instance;
+            IrpContext->IoContext->FileHeaderLength = Fcb->FileHeaderLength;
+            IrpContext->IoContext->IsEnFile = Fcb->IsEnFile;
+            IrpContext->IoContext->pCryptionKey = &Fcb->CryptionKey;
 
             // FltReadFile
             Status = RealReadFile(FltObjects, IrpContext, newBuf, NewByteOffset, readLen, &RetBytes);
 
-            if (Wait) {
+            if (needWait) {
                 if (Fcb->IsEnFile) {
                     for (i = 0; i < RetBytes / CRYPT_UNIT; i++) {
                         aes_ecb_decrypt(Add2Ptr(newBuf, i * CRYPT_UNIT), Add2Ptr(newBuf, i * CRYPT_UNIT), &Fcb->CryptionKey);
@@ -541,7 +539,7 @@ X70FsdCommonRead(
             }
             else if (NT_SUCCESS(Status)) {
                 NonCachedIoPending = TRUE;
-                IrpContext->X70FsdIoContext = NULL;
+                IrpContext->IoContext = NULL;
                 volCtx = NULL;
                 newBuf = NULL;
                 newMdl = NULL;
@@ -601,7 +599,7 @@ X70FsdCommonRead(
                     if (!CcCopyRead(FileObject,
                         (PLARGE_INTEGER)&StartingByte,
                         (ULONG)ByteCount,
-                        Wait,
+                        needWait,
                         SystemBuffer,
                         &Data->IoStatus)) {
                         try_return(PostIrp = TRUE);
@@ -612,7 +610,7 @@ X70FsdCommonRead(
                     try_return(Status);
                 }
                 else {
-                    FLT_ASSERT(Wait);
+                    FLT_ASSERT(needWait);
 
                     CcMdlRead(FileObject,
                         (PLARGE_INTEGER)&StartingByte,
@@ -736,7 +734,7 @@ X70FsdCommonRead(
                 if (!CcCopyRead(FileObject,
                     (PLARGE_INTEGER)&StartingByte,
                     (ULONG)ByteCount,
-                    Wait,
+                    needWait,
                     SystemBuffer,
                     &Data->IoStatus)) {
                     try_return(PostIrp = TRUE);
@@ -747,7 +745,7 @@ X70FsdCommonRead(
                 try_return(Status);
             }
             else {
-                FLT_ASSERT(Wait);
+                FLT_ASSERT(needWait);
 
                 CcMdlRead(FileObject,
                     (PLARGE_INTEGER)&StartingByte,
@@ -768,12 +766,12 @@ try_exit:
             if (!PostIrp) {
                 ULONG ActualBytesRead;
                 ActualBytesRead = (ULONG)Data->IoStatus.Information;
-                if (SynchronousIo && !PagingIo) {
+                if (isSynchronousIO && !isPagingIO) {
                     FileObject->CurrentByteOffset.QuadPart =
                         StartingByte.QuadPart + ActualBytesRead;
                 }
 
-                if (NT_SUCCESS(Status) && !PagingIo) {
+                if (NT_SUCCESS(Status) && !isPagingIO) {
                     SetFlag(FileObject->Flags, FO_FILE_FAST_IO_READ);
                 }
             }
@@ -796,7 +794,7 @@ try_exit:
             }
 
             if (ScbAcquired) {
-                if (PagingIo) {
+                if (isPagingIO) {
                     ExReleaseResourceLite(Fcb->Header.PagingIoResource);
                 }
                 else {
@@ -962,7 +960,7 @@ NTSTATUS RealReadFile(
             *RetBytes = RetNewCallbackData->IoStatus.Information;
         }
         else {
-            Status = FltPerformAsynchronousIo(RetNewCallbackData, ReadFileAsyncCompletionRoutine, IrpContext->X70FsdIoContext);
+            Status = FltPerformAsynchronousIo(RetNewCallbackData, ReadFileAsyncCompletionRoutine, IrpContext->IoContext);
         }
 
 #ifdef  CHANGE_TOP_IRP

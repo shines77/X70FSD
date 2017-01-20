@@ -1,0 +1,62 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="src">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="include">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hpp;hxx;hm;inl;inc;xsd</Extensions>
+    </Filter>
+    <Filter Include="inf">
+      <UniqueIdentifier>{8E41214B-6785-4CFE-B992-037D68949A14}</UniqueIdentifier>
+      <Extensions>inf;inv;inx;mof;mc;</Extensions>
+    </Filter>
+    <Filter Include="res">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <Inf Include="X70Fsd.inf">
+      <Filter>inf</Filter>
+    </Inf>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="X70Fsd.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="X70Fsd_new.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="X70FsdCreate.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="X70FsdData.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="X70FsdRead.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="X70FsdWrite.c">
+      <Filter>src</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="X70Fsd.rc">
+      <Filter>res</Filter>
+    </ResourceCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="X70FsdCreate.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="X70FsdData.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="X70FsdRead.h">
+      <Filter>include</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>

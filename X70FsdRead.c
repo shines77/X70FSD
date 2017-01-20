@@ -129,8 +129,8 @@ PtPreOperationRead(
     if (FLT_IS_IRP_OPERATION(Data)) {
         try {
             TopLevel = X70FsdIsIrpTopLevel(Data);
-            IrpContext = X70FsdCreateIrpContext(Data, FltObjects, CanFsdWait(Data));
 
+            IrpContext = X70FsdCreateIrpContext(Data, FltObjects, CanFsdWait(Data));
             if (IrpContext == NULL) {
                 X70FsdRaiseStatus(IrpContext, STATUS_INSUFFICIENT_RESOURCES);
             }
@@ -212,8 +212,8 @@ X70FsdCommonRead(
     __in PIRP_CONTEXT IrpContext)
 {
     NTSTATUS Status = STATUS_SUCCESS;
-    FLT_PREOP_CALLBACK_STATUS   FltStatus = FLT_PREOP_COMPLETE;
-    PFLT_IO_PARAMETER_BLOCK  Iopb = Data->Iopb;
+    FLT_PREOP_CALLBACK_STATUS FltStatus = FLT_PREOP_COMPLETE;
+    PFLT_IO_PARAMETER_BLOCK Iopb = Data->Iopb;
 
     LARGE_INTEGER StartingByte;
     LARGE_INTEGER ByteRange;
@@ -267,7 +267,7 @@ X70FsdCommonRead(
         FileObject = Iopb->TargetFileObject;
     }
 
-    ASSERT(FileObject != NULL);
+    FLT_ASSERT(FileObject != NULL);
 
     Fcb = FileObject->FsContext;
     Ccb = FileObject->FsContext2;
@@ -608,11 +608,11 @@ X70FsdCommonRead(
                     }
 
                     Status = Data->IoStatus.Status;
-                    ASSERT(NT_SUCCESS(Status));
+                    FLT_ASSERT(NT_SUCCESS(Status));
                     try_return(Status);
                 }
                 else {
-                    ASSERT(Wait);
+                    FLT_ASSERT(Wait);
 
                     CcMdlRead(FileObject,
                         (PLARGE_INTEGER)&StartingByte,
@@ -621,7 +621,7 @@ X70FsdCommonRead(
                         &Data->IoStatus);
 
                     Status = Data->IoStatus.Status;
-                    ASSERT(NT_SUCCESS(Status));
+                    FLT_ASSERT(NT_SUCCESS(Status));
                     try_return(Status);
                 }
             }
@@ -743,11 +743,11 @@ X70FsdCommonRead(
                 }
 
                 Status = Data->IoStatus.Status;
-                ASSERT(NT_SUCCESS(Status));
+                FLT_ASSERT(NT_SUCCESS(Status));
                 try_return(Status);
             }
             else {
-                ASSERT(Wait);
+                FLT_ASSERT(Wait);
 
                 CcMdlRead(FileObject,
                     (PLARGE_INTEGER)&StartingByte,
@@ -756,7 +756,7 @@ X70FsdCommonRead(
                     &Data->IoStatus);
 
                 Status = Data->IoStatus.Status;
-                ASSERT(NT_SUCCESS(Status));
+                FLT_ASSERT(NT_SUCCESS(Status));
                 try_return(Status);
             }
         }

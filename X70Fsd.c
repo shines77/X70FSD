@@ -507,7 +507,7 @@ CleanupVolumeContext(
 
     UNREFERENCED_PARAMETER(ContextType);
 
-    ASSERT(ContextType == FLT_VOLUME_CONTEXT);
+    FLT_ASSERT(ContextType == FLT_VOLUME_CONTEXT);
 
     FltDeleteContext(Context);
 }
@@ -559,7 +559,7 @@ PtInstanceSetup(
             leave;
         }
 
-        ASSERT((volProp->SectorSize == 0) || (volProp->SectorSize >= MIN_SECTOR_SIZE));
+        FLT_ASSERT((volProp->SectorSize == 0) || (volProp->SectorSize >= MIN_SECTOR_SIZE));
 
         if (volProp->SectorSize > MAX_SECTOR_SIZE) {
             DbgPrint("volProp->SectorSize false %d \n", volProp->SectorSize);

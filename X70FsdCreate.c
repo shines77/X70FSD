@@ -764,7 +764,7 @@ try_exit:
                         &Fcb->ShareAccess,
                         TRUE
                         );
-                    ASSERT(Status == STATUS_SUCCESS);
+                    FLT_ASSERT(Status == STATUS_SUCCESS);
                 }
                 else {
                     IoUpdateShareAccess(

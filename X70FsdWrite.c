@@ -229,7 +229,7 @@ X70FsdCommonWrite(
         FileObject = Iopb->TargetFileObject;
     }
 
-    ASSERT(FileObject != NULL);
+    FLT_ASSERT(FileObject != NULL);
 
     Fcb = FileObject->FsContext;
     Ccb = FileObject->FsContext2;
@@ -660,7 +660,7 @@ X70FsdCommonWrite(
                 Fcb->Header.AllocationSize.LowPart = ((ULONG)FileSize.LowPart + (ClusterSize - 1)) & (~(ClusterSize - 1));
                 Fcb->Header.AllocationSize.HighPart = TempLI.HighPart;
             }
-            ASSERT(FileSize.QuadPart <= Fcb->Header.AllocationSize.QuadPart);
+            FLT_ASSERT(FileSize.QuadPart <= Fcb->Header.AllocationSize.QuadPart);
             Fcb->Header.FileSize.QuadPart = FileSize.QuadPart;
 
             if (CcIsFileCached(FileObject)) {
@@ -680,7 +680,7 @@ X70FsdCommonWrite(
         }
         else {
             if (FcbCanDemoteToShared) {
-                ASSERT(FcbAcquiredExclusive && ExIsResourceAcquiredExclusiveLite(Fcb->Header.Resource));
+                FLT_ASSERT(FcbAcquiredExclusive && ExIsResourceAcquiredExclusiveLite(Fcb->Header.Resource));
                 ExConvertExclusiveToSharedLite(Fcb->Header.Resource);
                 FcbAcquiredExclusive = FALSE;
             }
@@ -800,7 +800,7 @@ X70FsdCommonWrite(
             try_return(Status);
         }
 
-        ASSERT(!PagingIo);
+        FLT_ASSERT(!PagingIo);
 
 #ifdef OTHER_NETWORK
         if (FlagOn(Ccb->CcbState, CCB_FLAG_NETWORK_FILE)) {
@@ -881,7 +881,7 @@ X70FsdCommonWrite(
 
                 }
                 else {
-                    ASSERT(FlagOn(IrpContext->Flags, IRP_CONTEXT_FLAG_WAIT));
+                    FLT_ASSERT(FlagOn(IrpContext->Flags, IRP_CONTEXT_FLAG_WAIT));
 
                     CcPrepareMdlWrite(FileObject,
                         (PLARGE_INTEGER)&StartingByte,
@@ -890,7 +890,7 @@ X70FsdCommonWrite(
                         &Data->IoStatus);
 
                     Status = Data->IoStatus.Status;
-                    ASSERT(NT_SUCCESS(Status));
+                    FLT_ASSERT(NT_SUCCESS(Status));
 
                     try_return(Status);
                 }
@@ -1069,7 +1069,7 @@ X70FsdCommonWrite(
 
             }
             else {
-                ASSERT(FlagOn(IrpContext->Flags, IRP_CONTEXT_FLAG_WAIT));
+                FLT_ASSERT(FlagOn(IrpContext->Flags, IRP_CONTEXT_FLAG_WAIT));
 
                 CcPrepareMdlWrite(FileObject,
                     (PLARGE_INTEGER)&StartingByte,
@@ -1078,7 +1078,7 @@ X70FsdCommonWrite(
                     &Data->IoStatus);
 
                 Status = Data->IoStatus.Status;
-                ASSERT(NT_SUCCESS(Status));
+                FLT_ASSERT(NT_SUCCESS(Status));
                 try_return(Status);
             }
         }

@@ -1334,7 +1334,7 @@ X70FsdCompleteMdl(
         FileObject = Iopb->TargetFileObject;
     }
 
-    ASSERT(FileObject != NULL);
+    FLT_ASSERT(FileObject != NULL);
 
     switch (Iopb->MajorFunction) {
         case IRP_MJ_READ:
@@ -1344,12 +1344,12 @@ X70FsdCompleteMdl(
 
         case IRP_MJ_WRITE:
             // 同步的
-            ASSERT(CanFsdWait(Data));
+            FLT_ASSERT(CanFsdWait(Data));
             CcMdlWriteComplete(FileObject, &Iopb->Parameters.Write.ByteOffset, Iopb->Parameters.Write.MdlAddress);
             break;
 
         default:
-            ASSERTMSG("Illegal Mdl Complete, About to bugcheck ", FALSE);
+            FLT_ASSERTMSG("Illegal Mdl Complete, About to bugcheck ", FALSE);
             // 直接蓝屏
             X70FsdBugCheck(Iopb->MajorFunction, 0, 0);
             break;
@@ -1420,7 +1420,7 @@ X70FsdCMCAcquireForReadAhead(
         return FALSE;
     }
 
-    ASSERT(IoGetTopLevelIrp() == NULL);
+    FLT_ASSERT(IoGetTopLevelIrp() == NULL);
     IoSetTopLevelIrp((PIRP)FSRTL_CACHE_TOP_LEVEL_IRP);
 
     return TRUE;
@@ -1433,7 +1433,7 @@ X70FsdCMCReleaseFromReadAhead(
 {
     PFCB Fcb = (PFCB)Context;
 
-    ASSERT(IoGetTopLevelIrp() == (PIRP)FSRTL_CACHE_TOP_LEVEL_IRP);
+    FLT_ASSERT(IoGetTopLevelIrp() == (PIRP)FSRTL_CACHE_TOP_LEVEL_IRP);
     IoSetTopLevelIrp(NULL);
 
     ExReleaseResourceLite(((PFCB)Fcb)->Header.Resource);
@@ -1505,7 +1505,7 @@ X70FsdWaitForIoAtEof(
 {
     PAGED_CODE();
 
-    ASSERT(Header->FileSize.QuadPart >= Header->ValidDataLength.QuadPart);
+    FLT_ASSERT(Header->FileSize.QuadPart >= Header->ValidDataLength.QuadPart);
 
     //
     // Initialize the event and queue our block
@@ -1659,7 +1659,7 @@ X70FsdCreateIrpContext(
     IN BOOLEAN Wait
     )
 {
-    PIRP_CONTEXT    IrpContext = NULL;
+    PIRP_CONTEXT IrpContext = NULL;
     PTOP_LEVEL_CONTEXT CurrentTopLevelContext;
     PFILE_OBJECT FileObject = FltObjects->FileObject;
 
@@ -1698,25 +1698,29 @@ X70FsdCreateIrpContext(
 
 VOID
 X70FsdDeleteIrpContext(
-    IN OUT PIRP_CONTEXT *IrpContext
+    IN OUT PIRP_CONTEXT * pIrpContext
     )
 {
     PFCB Fcb;
+    PIRP_CONTEXT IrpContext;
 
-    if (!FlagOn((*IrpContext)->Flags, IRP_CONTEXT_FLAG_DONT_DELETE)) {
+    FLT_ASSERT(pIrpContext != NULL);
+    IrpContext = *pIrpContext;
+
+    if (!FlagOn(IrpContext->Flags, IRP_CONTEXT_FLAG_DONT_DELETE)) {
         // 非缓存的异步操作在操作内部自己清理了
-        if (!FlagOn((*IrpContext)->Flags, IRP_CONTEXT_STACK_IO_CONTEXT)
-            && ((*IrpContext)->X70FsdIoContext != NULL)) {
+        if (!FlagOn(IrpContext->Flags, IRP_CONTEXT_STACK_IO_CONTEXT)
+            && (IrpContext->X70FsdIoContext != NULL)) {
 
-            ExFreeToNPagedLookasideList(&G_IoContextLookasideList, (*IrpContext)->X70FsdIoContext);
-            (*IrpContext)->X70FsdIoContext = NULL;
+            ExFreeToNPagedLookasideList(&G_IoContextLookasideList, IrpContext->X70FsdIoContext);
+            IrpContext->X70FsdIoContext = NULL;
         }
 
         // 释放内存
-        if (*IrpContext != NULL) {
-            ExFreeToNPagedLookasideList(&G_IrpContextLookasideList, *IrpContext);
+        if (IrpContext != NULL) {
+            ExFreeToNPagedLookasideList(&G_IrpContextLookasideList, IrpContext);
         }
-        *IrpContext = NULL;
+        IrpContext = NULL;
     }
 }
 
@@ -1739,7 +1743,7 @@ X70FsdOplockComplete(
 NTSTATUS
 X70FsdPostRequest(
     __inout PFLT_CALLBACK_DATA Data,
-    __in      PIRP_CONTEXT IrpContext
+    __in    PIRP_CONTEXT IrpContext
     )
 {
     X70FsdPrePostIrp(Data, IrpContext);
@@ -1748,8 +1752,10 @@ X70FsdPostRequest(
     return STATUS_PENDING;
 }
 
+//
 // 给工作项中处理做准备
 // FltQueueDeferredIoWorkItem 过滤驱动提供的工作队列, 这里修改.
+//
 VOID
 X70FsdPrePostIrp(
     IN PFLT_CALLBACK_DATA Data,
@@ -1759,7 +1765,7 @@ X70FsdPrePostIrp(
     PIRP_CONTEXT IrpContext;
     PFCB Fcb;
     NTSTATUS Status = STATUS_SUCCESS;
-    PFLT_IO_PARAMETER_BLOCK  Iopb;
+    PFLT_IO_PARAMETER_BLOCK Iopb;
     IrpContext = (PIRP_CONTEXT)Context;
 
     if (Data == NULL) {
@@ -2115,8 +2121,8 @@ X70FsdExceptionFilter(
         }
     }
     else {
-        ASSERT(IrpContext->ExceptionStatus == ExceptionCode);
-        ASSERT(FsRtlIsNtstatusExpected(ExceptionCode));
+        FLT_ASSERT(IrpContext->ExceptionStatus == ExceptionCode);
+        FLT_ASSERT(FsRtlIsNtstatusExpected(ExceptionCode));
     }
 
     return EXCEPTION_EXECUTE_HANDLER;
@@ -2538,7 +2544,7 @@ MyFltProcessFileLock(
 
     Iosb.Information = 0;
 
-    ASSERT(Iopb->MajorFunction == IRP_MJ_LOCK_CONTROL);
+    FLT_ASSERT(Iopb->MajorFunction == IRP_MJ_LOCK_CONTROL);
 
     ExclusiveLock = Iopb->Parameters.LockControl.ExclusiveLock;
     FailImmediately = Iopb->Parameters.LockControl.FailImmediately;

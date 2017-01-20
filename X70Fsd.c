@@ -10,7 +10,7 @@
 #include "X70FsdStruct.h"
 #include "X70FsdFileInfo.h"
 #include "X70FsdCreate.h"
-#include "X70FsdData.h" 
+#include "X70FsdData.h"
 #include "X70FsdRead.h"
 #include "X70FsdWrite.h"
 #include "X70FsdCloseCleanup.h"

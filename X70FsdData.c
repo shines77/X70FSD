@@ -2492,7 +2492,7 @@ X70FsdLookupFileAllocationSize(
             TempLI.QuadPart += ClusterSize;
             TempLI.HighPart += (ULONG)((LONGLONG)ClusterSize >> 32);
 
-            // 不需要进位 
+            // 不需要进位
             if (TempLI.LowPart == 0) {
                 TempLI.HighPart -= 1;
             }
@@ -3293,7 +3293,7 @@ NTSTATUS TransformFileToEncrypted(PFLT_CALLBACK_DATA Data, PCFLT_RELATED_OBJECTS
             TempLI.QuadPart += UnitSize;
             TempLI.HighPart += (ULONG)((LONGLONG)UnitSize >> 32);
 
-            // 不需要进位 
+            // 不需要进位
             if (TempLI.LowPart == 0) {
                 TempLI.HighPart -= 1;
             }

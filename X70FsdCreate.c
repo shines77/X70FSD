@@ -124,7 +124,7 @@ NTSTATUS CreateFileImitation(__inout PFLT_CALLBACK_DATA Data,
     EaLength = Iopb->Parameters.Create.EaLength;
 
     if (Network) {
-        //SetFlag (ShareAccess, FILE_SHARE_READ); 
+        //SetFlag (ShareAccess, FILE_SHARE_READ);
         //SetFlag (DesiredAccess, FILE_READ_DATA );
 
         // ???
@@ -247,7 +247,7 @@ NTSTATUS CreateFileByNonExistFcb(__inout PFLT_CALLBACK_DATA Data,
             &IrpContext->CreateInfo.StreamObject,
             &Data->IoStatus,
             IrpContext->CreateInfo.Network
-            ); 
+            );
 
         if (!NT_SUCCESS(Status)) {
             if (Status == STATUS_FILE_IS_A_DIRECTORY) {
@@ -933,7 +933,7 @@ BOOLEAN IsNeedSelfFcb(__inout PFLT_CALLBACK_DATA Data, PFLT_FILE_NAME_INFORMATIO
         }
 
         *pStatus = STATUS_SUCCESS;
-        // TRUE? FALSE? 
+        // TRUE? FALSE?
         return FALSE;
     }
 
@@ -1171,7 +1171,7 @@ X70FsdCommonCreate(
 
         if (volCtx->DeviceType == FILE_DEVICE_NETWORK_FILE_SYSTEM) {
             // only read !!!!!
-            IrpContext->CreateInfo.Network = TRUE;  
+            IrpContext->CreateInfo.Network = TRUE;
         }
 
         IrpContext->SectorSize = volCtx->SectorSize;

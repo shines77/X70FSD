@@ -7,7 +7,7 @@
 #include"X70FsdSupport.h"
 #include"X70FsdInterface.h"
 
-#define FILE_OPEN_REQUIRING_OPLOCK              0x00010000
+#define FILE_OPEN_REQUIRING_OPLOCK      0x00010000
 
 extern LARGE_INTEGER  Li0;
 

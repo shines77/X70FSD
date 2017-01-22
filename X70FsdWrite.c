@@ -67,7 +67,7 @@ PtPreOperationWrite(
                 IoSetTopLevelIrp((PIRP)Data);
             }
 
-            // 上层用来 FreeMdl请求的
+            // 上层用来 FreeMdl 请求的
             if (FlagOn(Data->Iopb->MinorFunction, IRP_MN_COMPLETE)) {
                 FltStatus = X70FsdCompleteMdl(Data, FltObjects, IrpContext);
             }
@@ -328,10 +328,8 @@ X70FsdCommonWrite(
         }
         else {
             IrpContext->IoContext->PagingIo = PagingIo;
-            IrpContext->IoContext->Wait.Async.ResourceThreadId =
-                ExGetCurrentResourceThread();
-            IrpContext->IoContext->Wait.Async.RequestedByteCount =
-                ByteCount;
+            IrpContext->IoContext->Wait.Async.ResourceThreadId = ExGetCurrentResourceThread();
+            IrpContext->IoContext->Wait.Async.RequestedByteCount = ByteCount;
             IrpContext->IoContext->Wait.Async.FileObject = FileObject;
         }
     }
@@ -364,6 +362,7 @@ X70FsdCommonWrite(
             if (!NT_SUCCESS(Data->IoStatus.Status)) {
                 try_return(Status = Data->IoStatus.Status);
             }
+
             ExAcquireResourceExclusiveLite(Fcb->Header.PagingIoResource, TRUE);
             PagingIoResourceAcquired = TRUE;
 
@@ -433,12 +432,11 @@ X70FsdCommonWrite(
         // 表示这是一个延迟写
         if ((Fcb->LazyWriteThread[0] == PsGetCurrentThread()) ||
             (Fcb->LazyWriteThread[1] == PsGetCurrentThread())) {
-            // 当前是一个延迟的写请求的话 是不能扩展文件大小的
+            // 当前是一个延迟的写请求的话, 是不能扩展文件大小的.
             CalledByLazyWriter = TRUE;
 
             // 如果是文件映射
             if (FlagOn(Fcb->Header.Flags, FSRTL_FLAG_USER_MAPPED_FILE)) {
-
                 if ((StartingByte.QuadPart + ByteCount > ValidDataLength.QuadPart) &&
                     (StartingByte.QuadPart < FileSize.QuadPart)) {
                     // 保证这次刷新的页包含有效数据

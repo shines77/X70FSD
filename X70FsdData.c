@@ -257,7 +257,7 @@ PCCB X70FsdCreateCcb()
     return Ccb;
 }
 
-// 把FCB放入链表中这里用一个FcbTable 保存链表信息
+// 把FCB放入链表中这里用一个 FcbTable 保存链表信息
 BOOLEAN InsertFcbList(PUCHAR HashValue, PFCB *Fcb)
 {
     ULONG j = 0;
